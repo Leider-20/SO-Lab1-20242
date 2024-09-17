@@ -2,79 +2,87 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Define the maximum line length
-#define MAX_LINE_LENGTH 1024
 
 void reverse_lines(FILE *input, FILE *output) {
-    char **lines = NULL;
-    size_t lines_size = 0;
-    size_t lines_count = 0;
+    char **lines = NULL; // Arreglo de líneas
+    size_t size = 0, capacity = 10; // Tamaño del arreglo y capacidad inicial
     char *line = NULL;
     size_t len = 0;
+    ssize_t read;
 
-    // Read lines from input file
-    while (getline(&line, &len, input) != -1) {
-        char **temp = realloc(lines, (lines_count + 1) * sizeof(char *));
-        if (temp == NULL) {
-            fprintf(stderr, "malloc failed\n");
-            exit(1);
-        }
-        lines = temp;
-        lines[lines_count] = strdup(line);
-        if (lines[lines_count] == NULL) {
-            fprintf(stderr, "malloc failed\n");
-            exit(1);
-        }
-        lines_count++;
+    // Se Inicializa la memoria para almacenar las líneas
+    lines = malloc(capacity * sizeof(char *));
+    if (!lines) {
+        fprintf(stderr, "malloc failed\n");
+        exit(1);
     }
 
+    // Leemos las líneas del archivo
+    while ((read = getline(&line, &len, input)) != -1) {
+        if (size >= capacity) {
+            capacity *= 2;
+            lines = realloc(lines, capacity * sizeof(char *));
+            if (!lines) {
+                fprintf(stderr, "malloc failed\n");
+                exit(1);
+            }
+        }
+        lines[size] = strdup(line); // Copiamos la línea leída al arreglo
+        if (!lines[size]) {
+            fprintf(stderr, "malloc failed\n");
+            exit(1);
+        }
+        size++;
+    }
     free(line);
 
-    // Write lines to output file in reverse order
-    for (size_t i = lines_count; i > 0; i--) {
-        fprintf(output, "%s", lines[i - 1]);
-        free(lines[i - 1]);
+    // Imprimir las líneas en orden inverso
+    for (ssize_t i = size - 1; i >= 0; i--) {
+        fprintf(output, "%s", lines[i]);
+        free(lines[i]); // Liberar memoria de cada línea
     }
-    free(lines);
+
+    free(lines); // Liberar memoria del arreglo de líneas
 }
 
 int main(int argc, char *argv[]) {
     FILE *input = stdin;
     FILE *output = stdout;
 
-    // Handle command line arguments
+    // Demasiados argumentos
     if (argc > 3) {
         fprintf(stderr, "usage: reverse <input> <output>\n");
-        return 1;
-    } else if (argc == 3) {
-        // Open input and output files
-        if (strcmp(argv[1], argv[2]) == 0) {
-            fprintf(stderr, "El archivo de entrada y salida deben diferir\n");
-            return 1;
-        }
+        exit(1);
+    }
+
+    // Un archivo de entrada especificado
+    if (argc >= 2) {
         input = fopen(argv[1], "r");
-        if (input == NULL) {
+        if (!input) {
             fprintf(stderr, "error: cannot open file '%s'\n", argv[1]);
-            return 1;
-        }
-        output = fopen(argv[2], "w");
-        if (output == NULL) {
-            fprintf(stderr, "error: cannot open file '%s'\n", argv[2]);
-            fclose(input);
-            return 1;
-        }
-    } else if (argc == 2) {
-        input = fopen(argv[1], "r");
-        if (input == NULL) {
-            fprintf(stderr, "error: cannot open file '%s'\n", argv[1]);
-            return 1;
+            exit(1);
         }
     }
 
-    // Process lines and output
+    // Un archivo de salida especificado
+    if (argc == 3) {
+        // Verificamos si el archivo de entrada es el mismo que el de salida
+        if (strcmp(argv[1], argv[2]) == 0) {
+            fprintf(stderr, "El archivo de entrada y salida deben diferir\n");
+            exit(1);
+        }
+
+        output = fopen(argv[2], "w");
+        if (!output) {
+            fprintf(stderr, "error: cannot open file '%s'\n", argv[2]);
+            exit(1);
+        }
+    }
+
+    // Ejecutamos la función para invertir las líneas
     reverse_lines(input, output);
 
-    // Close files
+    // Cerramos los archivos si no son stdin o stdout
     if (input != stdin) fclose(input);
     if (output != stdout) fclose(output);
 
