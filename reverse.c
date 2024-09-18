@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define MAX_LINE_LEN 1024
 
 void reverse_lines(FILE *input, FILE *output) {
     char **lines = NULL; // Arreglo de líneas
@@ -10,7 +11,7 @@ void reverse_lines(FILE *input, FILE *output) {
     size_t len = 0;
     ssize_t read;
 
-    // Se Inicializa la memoria para almacenar las líneas
+    // Inicializamos memoria para almacenar las líneas
     lines = malloc(capacity * sizeof(char *));
     if (!lines) {
         fprintf(stderr, "malloc failed\n");
@@ -57,24 +58,30 @@ int main(int argc, char *argv[]) {
 
     // Un archivo de entrada especificado
     if (argc >= 2) {
-        input = fopen(argv[1], "r");
+        // Verificamos si el archivo de entrada es el mismo que el de salida (si se especifica salida)
+        if (argc == 3 && strcmp(argv[1], argv[2]) == 0) {
+            fprintf(stderr, "reverse: input and output file must differ\n");
+            exit(1);
+        }
+        
+        input = fopen(argv[1], "r");  // Abrimos en modo texto
         if (!input) {
-            fprintf(stderr, "error: cannot open file '%s'\n", argv[1]);
+            fprintf(stderr, "reverse: cannot open file '%s'\n", argv[1]);
             exit(1);
         }
     }
 
     // Un archivo de salida especificado
     if (argc == 3) {
-        // Verificamos si el archivo de entrada es el mismo que el de salida
-        if (strcmp(argv[1], argv[2]) == 0) {
-            fprintf(stderr, "El archivo de entrada y salida deben diferir\n");
+        // Verificamos si el archivo de entrada es el mismo que el de salida (en caso de que la entrada haya sido especificada)
+        if (input != stdin && strcmp(argv[1], argv[2]) == 0) {
+            fprintf(stderr, "reverse: input and output file must differ\n");
             exit(1);
         }
 
-        output = fopen(argv[2], "w");
+        output = fopen(argv[2], "w");  // Abrimos en modo texto
         if (!output) {
-            fprintf(stderr, "error: cannot open file '%s'\n", argv[2]);
+            fprintf(stderr, "reverse: cannot open file '%s'\n", argv[2]);
             exit(1);
         }
     }
